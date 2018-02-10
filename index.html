@@ -1,0 +1,105 @@
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<style>
+	html, body{
+		margin: 0;
+		padding: 0;
+		width: 100%;
+		font-size: 14px;
+		font-family: Arial;
+	}
+	table{
+		font-size: inherit;
+		border-collapse: collapse;
+		table-layout: fixed;
+		width: 100%;
+	}
+</style>
+<title>Eötvös Helyettesítések</title>
+
+<body>
+<script>
+	const parseRawTableContent = rawTableContent => {
+		const table = document.createElement('table');
+		table.innerHTML = rawTableContent;
+		const [headRow, ...rows] = [...table.querySelectorAll('tr')].map(tr =>
+			[...tr.querySelectorAll('td, th')].map((td, i) => 
+				td.innerText.trim()
+			)
+		);
+		return {headRow, rows};
+	};
+
+	const tableToArray = (headRow, rows) => {
+		const headRowLength = headRow.length;
+		return rows.map(row => {
+			const obj = {};
+			for(let i = 0; i < headRowLength; i++){
+				obj[headRow[i]] = row[i];
+			}
+			return obj;
+		});
+	};
+
+	const mapByProperty = (arr, propName) => {
+		const map = new Map();
+		for(const obj of arr){
+			const key = obj[propName];
+			if(!map.has(key)) map.set(key, []);
+			map.get(key).push(obj);
+		}
+		return map;
+	};
+
+	/*
+	const textTable = (headRow, rows) =>
+		[headRow, ...rows].map(row => row
+			.map(text => text.trim().replace('\t', ''))
+			.join('\t')	
+		).join('\n');
+	*/
+
+	const createCellElement = (cell, header) => {
+		if(typeof cell !== 'object' || cell === null){
+			const cellElement = document.createElement(header ? 'th' : 'td');
+			cellElement.appendChild(document.createTextNode(cell));
+			return cellElement;
+		}else{
+			return cell;
+		}
+	};
+
+	const createRowElement = (cells, header) => {
+		const tr = document.createElement('tr');
+		for(const cell of cells){
+			tr.appendChild(createCellElement(cell, header));
+		}
+		return tr;
+	};
+
+	const createTableElement = (headerRow, rows) => {
+		const table = document.createElement('table');
+		table.appendChild(createRowElement(headerRow, true));
+		for(const row of rows){
+			table.appendChild(createRowElement(row));
+		}
+		return table;
+	};
+
+	const dropIndex = (arr, index) => {arr.splice(index, 1); return arr;}
+
+	fetch('https://cors-anywhere.herokuapp.com/http://www.ejg.hu/helyettesitesek/')
+		.then(response => response.text())
+		.then(text => {
+			const rawTableMatch = text.match(/<table style.*?>([\s\S]*?)<\/table>/i)
+			if(rawTableMatch){
+				const {headRow, rows} = parseRawTableContent(rawTableMatch[1]);
+				const table = createTableElement(
+					dropIndex(dropIndex(headRow, 0), 3),
+					rows.map(row => dropIndex(dropIndex(row, 0), 3))
+				);
+				document.body.appendChild(table);
+			}
+		});
+</script>
