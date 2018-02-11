@@ -43,6 +43,9 @@
 		});
 	};
 
+	const arrayToTable = (arr, headRow) =>
+		arr.map(elem => headRow.map(prop => elem[prop]));
+
 	const mapByProperty = (arr, propName) => {
 		const map = new Map();
 		for(const obj of arr){
@@ -88,7 +91,15 @@
 		return table;
 	};
 
-	const dropIndex = (arr, index) => {arr.splice(index, 1); return arr;}
+	const iToWeekday = i =>
+		i === 0 ? 'vasárnap' : 
+		i === 1 ? 'hétfő' :
+		i === 2 ? 'kedd' :
+		i === 3 ? 'szerda' :
+		i === 4 ? 'csütörtök' :
+		i === 5 ? 'péntek' :
+		i === 6 ? 'szombat' :
+		undefined;
 
 	fetch('https://cors-anywhere.herokuapp.com/http://www.ejg.hu/helyettesitesek/')
 		.then(response => response.text())
@@ -96,11 +107,23 @@
 			const rawTableMatch = text.match(/<table style.*?>([\s\S]*?)<\/table>/i)
 			if(rawTableMatch){
 				const {headRow, rows} = parseRawTableContent(rawTableMatch[1]);
-				const table = createTableElement(
-					dropIndex(dropIndex(headRow, 0), 3),
-					rows.map(row => dropIndex(dropIndex(row, 0), 3))
-				);
-				document.body.appendChild(table);
+				const data = tableToArray(headRow, rows);
+				headRow.splice(0, 1);
+				headRow.splice(2, 1);
+
+				[...mapByProperty(data, 'dátum')].forEach(([dateStr, data]) => {
+					const date = new Date(dateStr);
+					const prettyDate = date.getFullYear() + '-' + date.getMonth() + '-' + date.getDate() + ', ' + iToWeekday(date.getDay());
+					
+					const h = document.createElement('h2');
+					h.appendChild(document.createTextNode(prettyDate));
+					document.body.appendChild(h);
+
+					document.body.appendChild(createTableElement(
+						headRow,
+						arrayToTable(data, headRow)
+					));
+				});
 			}
 		});
 </script>
