@@ -1,6 +1,9 @@
+<html lang="hu">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
 <meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="description" content="Az aktuális helyettesítések a Budapesti Eötvös József Gimnáziumban.">
+<link rel="manifest" href="/manifest.json">
 <style>
 	html, body{
 		margin: 0;
@@ -27,8 +30,11 @@
 </style>
 <title>Eötvös Helyettesítések</title>
 
-<body>
+
+<span id="status">Adatok betöltése...</span>
 <script>
+	const statusElement = document.getElementById('status');
+
 	const parseRawTableContent = rawTableContent => {
 		const table = document.createElement('table');
 		table.innerHTML = rawTableContent;
@@ -113,25 +119,28 @@
 		.then(response => response.text())
 		.then(text => {
 			const rawTableMatch = text.match(/<table style.*?>([\s\S]*?)<\/table>/i)
-			if(rawTableMatch){
-				const {headRow, rows} = parseRawTableContent(rawTableMatch[1]);
-				const data = tableToArray(headRow, rows);
-				headRow.splice(0, 1);
-				headRow.splice(2, 1);
+			
+			const {headRow, rows} = parseRawTableContent(rawTableMatch[1]);
+			const data = tableToArray(headRow, rows);
+			headRow.splice(0, 1);
+			headRow.splice(2, 1);
 
-				[...mapByProperty(data, 'dátum')].forEach(([dateStr, data]) => {
-					const date = new Date(dateStr);
-					const prettyDate = date.getFullYear() + '-' + date.getMonth() + '-' + date.getDate() + ', ' + iToWeekday(date.getDay());
-					
-					const h = document.createElement('h2');
-					h.appendChild(document.createTextNode(prettyDate));
-					document.body.appendChild(h);
+			[...mapByProperty(data, 'dátum')].forEach(([dateStr, data]) => {
+				const date = new Date(dateStr);
+				const prettyDate = date.getFullYear() + '-' + date.getMonth() + '-' + date.getDate() + ', ' + iToWeekday(date.getDay());
+				
+				const h = document.createElement('h2');
+				h.appendChild(document.createTextNode(prettyDate));
+				document.body.appendChild(h);
 
-					document.body.appendChild(createTableElement(
-						headRow,
-						arrayToTable(data, headRow)
-					));
-				});
-			}
+				document.body.appendChild(createTableElement(
+					headRow,
+					arrayToTable(data, headRow)
+				));
+			});
+
+			statusElement.style.display = 'none';
+		}).catch(err => {
+			statusElement.textContent = 'Az adatok nem elérhetőek! Újrapróbálkozáshoz töltse újra az oldalt!';
 		});
 </script>
